@@ -1,12 +1,18 @@
 export type EventStatus = "ожидает" | "идет" | "завершено";
 
+export type EventType = {
+  id: number;
+  title: string;
+  description: string;
+  startTime: string;
+  endTime: string;
+};
+
 export function getEventStatus(startTime: string, endTime: string): EventStatus {
   const now = new Date();
-  // Екатеринбург: UTC+5
-  const nowEkaterinburg = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Yekaterinburg" }));
+const nowEkaterinburg = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Yekaterinburg" }));
   const start = new Date(startTime);
   const end = new Date(endTime);
-
   if (nowEkaterinburg < start) return "ожидает";
   if (nowEkaterinburg >= start && nowEkaterinburg <= end) return "идет";
   return "завершено";
