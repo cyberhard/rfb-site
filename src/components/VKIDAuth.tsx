@@ -58,7 +58,7 @@ export default function VKIDAuth({
           redirectUrl: 'https://rusfurbal.ru/api/auth/callback/vk',
           responseMode: VKID.ConfigResponseMode.Callback,
           source: VKID.ConfigSource.LOWCODE,
-          scope: '',
+          scope: 'email',
         });
 
         oneTapRef.current = new VKID.OneTap();
