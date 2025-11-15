@@ -1,7 +1,6 @@
 // app/api/auth/vk/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import fetch from 'node-fetch';
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,24 +22,23 @@ export async function POST(req: NextRequest) {
 
     const vkUser = vkData.response[0];
     const name = `${vkUser.first_name} ${vkUser.last_name}`;
-    const email = vkUser.email || null;
+    const email = vkUser.email || `${vkUser.id}@vk.com`; // если email нет, делаем фиктивный
     const avatar = vkUser.photo_100 || null;
 
-    // Upsert пользователя в Postgres
+    // Upsert пользователя
     const upsertQuery = `
-      INSERT INTO users (vk_id, name, email, avatar, role)
-      VALUES ($1, $2, $3, $4, $5)
-      ON CONFLICT (vk_id)
-      DO UPDATE SET name = $2, email = $3, avatar = $4
-      RETURNING *;
+      INSERT INTO users (email, name, role)
+      VALUES ($1, $2, $3)
+      ON CONFLICT (email)
+      DO UPDATE SET name = $2, updated_at = NOW()
+      RETURNING id, email, name, role, created_at, updated_at;
     `;
-
-    const values = [vkUser.id, name, email, avatar, 'user'];
+    const values = [email, name, 'participant'];
 
     const result = await query(upsertQuery, values);
     const user = result.rows[0];
 
-    return NextResponse.json({ user });
+    return NextResponse.json({ user, avatar });
   } catch (err) {
     console.error('VK auth error:', err);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
