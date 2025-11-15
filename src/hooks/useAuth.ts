@@ -1,4 +1,3 @@
-// hooks/useAuth.ts
 import { useState, useEffect, useCallback } from 'react';
 
 export type User = {
@@ -6,6 +5,7 @@ export type User = {
   role: string;
   id?: number;
   email?: string;
+  avatar?: string;
 };
 
 export function useAuth() {
@@ -13,10 +13,27 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = useCallback(() => {
+  // Проверка авторизации при монтировании
+  const checkAuth = useCallback(async () => {
     const token = localStorage.getItem('vk_access_token');
     if (token) {
-      setIsAuthenticated(true);
+      try {
+        const res = await fetch('/api/auth/vk', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: token }),
+        });
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('vk_access_token');
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        localStorage.removeItem('vk_access_token');
+      }
     }
     setLoading(false);
   }, []);
@@ -25,23 +42,30 @@ export function useAuth() {
     checkAuth();
   }, [checkAuth]);
 
-  const login = async (authData: any) => {
+  // Логин через VKID
+  const login = async (authData: { access_token: string }) => {
     if (!authData.access_token) return;
+
     localStorage.setItem('vk_access_token', authData.access_token);
 
     try {
       const res = await fetch('/api/auth/vk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(authData),
+        body: JSON.stringify({ access_token: authData.access_token }),
       });
+
       const data = await res.json();
       if (data.user) {
         setUser(data.user);
         setIsAuthenticated(true);
+      } else {
+        console.error('No user returned from server');
+        localStorage.removeItem('vk_access_token');
       }
     } catch (err) {
       console.error('Login failed:', err);
+      localStorage.removeItem('vk_access_token');
     }
   };
 
