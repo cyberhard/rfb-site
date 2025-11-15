@@ -1,39 +1,38 @@
 // app/api/auth/vk/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import jwt from 'jsonwebtoken';
 
 export async function POST(req: NextRequest) {
   try {
-    const { access_token } = await req.json();
+    const { id_token } = await req.json();
 
-    if (!access_token) {
-      return NextResponse.json({ error: 'Missing access_token' }, { status: 400 });
+    if (!id_token) {
+      return NextResponse.json({ error: 'Missing id_token' }, { status: 400 });
     }
 
-    // Получаем данные пользователя из VK
-    const vkRes = await fetch(
-      `https://api.vk.com/method/users.get?access_token=${access_token}&v=5.131&fields=photo_100,email`
-    );
-    const vkData = await vkRes.json();
+    // Декодируем JWT (не проверяем подпись VKID SDK)
+    const payload = jwt.decode(id_token) as any;
 
-    if (vkData.error) {
-      return NextResponse.json({ error: 'Invalid VK token' }, { status: 401 });
+    if (!payload) {
+      return NextResponse.json({ error: 'Invalid id_token' }, { status: 401 });
     }
 
-    const vkUser = vkData.response[0];
-    const name = `${vkUser.first_name} ${vkUser.last_name}`;
-    const email = vkUser.email || `${vkUser.id}@vk.com`; // если email нет, делаем фиктивный
-    const avatar = vkUser.photo_100 || null;
+    // Извлекаем данные пользователя
+    const email = payload.email || `${payload.sub}@vk.com`; // fallback если email нет
+    const name = payload.name || `${payload.first_name || ''} ${payload.last_name || ''}`.trim();
+    const vkId = payload.sub; // id пользователя VK
+    const avatar = payload.picture || null;
 
-    // Upsert пользователя
+    // Upsert пользователя в базе
     const upsertQuery = `
-      INSERT INTO users (email, name, role)
-      VALUES ($1, $2, $3)
+      INSERT INTO users (email, name, role, vk_id)
+      VALUES ($1, $2, $3, $4)
       ON CONFLICT (email)
       DO UPDATE SET name = $2, updated_at = NOW()
       RETURNING id, email, name, role, created_at, updated_at;
     `;
-    const values = [email, name, 'participant'];
+    const values = [email, name || `VK User ${vkId}`, 'participant', vkId];
 
     const result = await query(upsertQuery, values);
     const user = result.rows[0];
