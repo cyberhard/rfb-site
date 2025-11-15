@@ -1,41 +1,50 @@
 // app/api/auth/vk/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import jwt from 'jsonwebtoken';
 
 export async function POST(req: NextRequest) {
   try {
-    const { id_token } = await req.json();
+    const { access_token } = await req.json();
 
-    if (!id_token) {
-      return NextResponse.json({ error: 'Missing id_token' }, { status: 400 });
+    if (!access_token) {
+      return NextResponse.json({ error: 'Missing access_token' }, { status: 400 });
     }
 
-    // Декодируем JWT (не проверяем подпись VKID SDK)
-    const payload = jwt.decode(id_token) as any;
+    // 1. Получаем данные пользователя с VK
+    const vkRes = await fetch(`https://api.vk.com/method/account.getProfileInfo?access_token=${access_token}&v=5.131`);
+    const vkData = await vkRes.json();
 
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid id_token' }, { status: 401 });
+    if (!vkData.response) {
+      return NextResponse.json({ error: 'Invalid VK response' }, { status: 401 });
     }
 
-    // Извлекаем данные пользователя
-    const email = payload.email || `${payload.sub}@vk.com`; // fallback если email нет
-    const name = payload.name || `${payload.first_name || ''} ${payload.last_name || ''}`.trim();
-    const vkId = payload.sub; // id пользователя VK
-    const avatar = payload.picture || null;
+    const vkUser = vkData.response;
+    const vkId = vkUser.id;
+    const name = `${vkUser.first_name || ''} ${vkUser.last_name || ''}`.trim();
+    const avatar = vkUser.photo_200 || null;
 
-    // Upsert пользователя в базе
-    const upsertQuery = `
-      INSERT INTO users (email, name, role, vk_id)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (email)
-      DO UPDATE SET name = $2, updated_at = NOW()
-      RETURNING id, email, name, role, created_at, updated_at;
+    // 2. Проверяем, есть ли пользователь в user_tags
+    const checkTagQuery = 'SELECT * FROM user_tags WHERE user_id = $1';
+    const tagResult = await query(checkTagQuery, [vkId]);
+
+    if (tagResult.rows.length === 0) {
+      // Добавляем нового пользователя в user_tags
+      const insertTagQuery = 'INSERT INTO user_tags (user_id) VALUES ($1) RETURNING *';
+      await query(insertTagQuery, [vkId]);
+    }
+
+    // 3. Добавляем или обновляем пользователя в users (по id из users)
+    //    Предполагаем, что связь users <-> user_tags через primary key id
+    //    Здесь можно искать существующего пользователя по user_id в user_tags
+    const upsertUserQuery = `
+      INSERT INTO users (name, vk_id)
+      VALUES ($1, $2)
+      ON CONFLICT (vk_id)
+      DO UPDATE SET name = $1, updated_at = NOW()
+      RETURNING id, name, vk_id, created_at, updated_at;
     `;
-    const values = [email, name || `VK User ${vkId}`, 'participant', vkId];
-
-    const result = await query(upsertQuery, values);
-    const user = result.rows[0];
+    const userResult = await query(upsertUserQuery, [name, vkId]);
+    const user = userResult.rows[0];
 
     return NextResponse.json({ user, avatar });
   } catch (err) {
