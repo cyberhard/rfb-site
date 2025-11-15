@@ -37,9 +37,8 @@ export default function VKIDAuth({
     };
 
     const vkidOnSuccess = (data: any) => {
-      console.log('VKID success:', data);
-      // Вызов логина из хука
-      login(data);
+      console.log('User logged in via VKID:', data);
+      login(data); // вызываем useAuth
     };
 
     const vkidOnError = (error: any) => {
@@ -54,8 +53,8 @@ export default function VKIDAuth({
         const VKID = window.VKIDSDK;
 
         VKID.Config.init({
-          app: 54294764,
-          redirectUrl: 'https://rusfurbal.ru/api/auth/callback/vk',
+          app: Number(process.env.NEXT_PUBLIC_VK_CLIENT_ID),
+          redirectUrl: process.env.VK_REDIRECT_URI,
           responseMode: VKID.ConfigResponseMode.Callback,
           source: VKID.ConfigSource.LOWCODE,
           scope: 'email',
@@ -70,13 +69,21 @@ export default function VKIDAuth({
             showAlternativeLogin
           })
           .on(VKID.WidgetEvents.ERROR, vkidOnError)
-          .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, (payload: any) => {
+          .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, async (payload: any) => {
             const code = payload.code;
             const deviceId = payload.device_id;
 
-            VKID.Auth.exchangeCode(code, deviceId)
-              .then(vkidOnSuccess)
-              .catch(vkidOnError);
+            try {
+              const res = await fetch('/api/auth/vk', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, deviceId }),
+              });
+              const json = await res.json();
+              vkidOnSuccess(json);
+            } catch (err) {
+              vkidOnError(err);
+            }
           });
 
       } catch (error) {
