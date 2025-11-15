@@ -54,7 +54,7 @@ export default function VKIDAuth({
 
         VKID.Config.init({
           app: Number(process.env.NEXT_PUBLIC_VK_CLIENT_ID),
-          redirectUrl: process.env.VK_REDIRECT_URI,
+          redirectUrl: 'https://rusfurbal.ru/api/auth/callback/vk',
           responseMode: VKID.ConfigResponseMode.Callback,
           source: VKID.ConfigSource.LOWCODE,
           scope: 'email',
