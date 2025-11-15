@@ -1,43 +1,34 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server';
+import { query } from '@/lib/db';
 
-export async function GET(request: Request) {
-  const url = new URL(request.url);
-  const code = url.searchParams.get("code");
+export async function POST(req: NextRequest) {
+  const { access_token, user_id, email, name } = await req.json();
 
-  if (!code) {
-    return NextResponse.json({ error: "No code provided" }, { status: 400 });
+  if (!user_id || !name) {
+    return NextResponse.json({ error: 'Invalid VK data' }, { status: 400 });
   }
 
-  const client_id = process.env.VK_CLIENT_ID || "54294764";
-  const client_secret = process.env.VK_CLIENT_SECRET!;
-  
-  // Используем текущий origin для redirect_uri
-  const origin = url.origin;
-  const redirect_uri = `${origin}/auth/callback`;
-
   try {
-    // Обмен кода на access_token
-    const tokenRes = await fetch(
-      `https://oauth.vk.com/access_token?client_id=${client_id}&client_secret=${client_secret}&redirect_uri=${encodeURIComponent(redirect_uri)}&code=${code}`
-    );
-    
-    const tokenData = await tokenRes.json();
+    // Проверяем есть ли пользователь
+    const result = await query('SELECT * FROM users WHERE id = $1', [user_id]);
 
-    if (tokenData.error) {
-      return NextResponse.json(
-        { error: tokenData.error_description || tokenData.error },
-        { status: 400 }
+    if (result.rowCount === 0) {
+      // Добавляем нового пользователя
+      await query(
+        'INSERT INTO users (id, email, password, name, role) VALUES ($1, $2, $3, $4, $5)',
+        [
+          user_id,
+          email || `${user_id}@vk.fake`, // если email нет
+          'vk_auth', // пароль не нужен, но колонка not null
+          name,
+          'participant',
+        ]
       );
     }
 
-    // tokenData содержит access_token, user_id и email
-    return NextResponse.json(tokenData);
-  } catch (error) {
-    console.error("VK auth callback error:", error);
-    return NextResponse.json(
-      { error: "Failed to exchange code for token" },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: true, user: { id: user_id, name, email, role: 'participant' } });
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'DB error' }, { status: 500 });
   }
 }
-

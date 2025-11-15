@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { Button, Card } from "@heroui/react";
 import { Menu, X } from "lucide-react";
 import Events from "@/components/Events";
 import { useAuth } from "@/hooks/useAuth";
-import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 
 const participants = [
   { id: 1, name: "Коди Хэллфин", bio: "Художник и крафтер", avatar: "/assets/avatars/kodi.jpg" },
@@ -17,20 +16,9 @@ const participants = [
 ];
 
 export default function Home() {
-  //const { user, isAuthenticated, login, logout, loading } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  //================================================================================
-  // 👇 2. ВМЕСТО ЭТОГО, ЖЕСТКО ЗАДАЕМ АДМИНА ДЛЯ ТЕСТА:
-  const { logout } = useAuth(); // Можем вытащить только logout, он нам нужен для кнопки
-  // const user = {
-  //   name: "Тестовый Админ",
-  //   email: "admin@test.com",
-  //   role: "admin", // 👈 Самое важное!
-  //   id: 1 
-  // };
-  const isAuthenticated = true;
-  const loading = false;
-  //================================================================================
+  const router = useRouter();
 
   return (
     <div className="bg-[#0f111b] text-gray-100 min-h-screen flex flex-col font-sans">
@@ -44,25 +32,21 @@ export default function Home() {
           <a href="#events" className="hover:text-pink-400 transition">События</a>
           <a href="#participants" className="hover:text-pink-400 transition">Участники</a>
           <a href="#tickets" className="hover:text-pink-400 transition">Билеты</a>
+
           {isAuthenticated && user ? (
-            <>
-              {user.role === "admin" && <a href="#admin" className="hover:text-pink-400 transition">Админка</a>}
-              <Button
-                onClick={logout}
-                className="bg-pink-500 text-black font-bold px-5 py-2 rounded-lg shadow hover:bg-pink-400 transition"
-              >
-                Выйти
-              </Button>
-            </>
+            <Button
+              onClick={logout}
+              className="bg-pink-500 text-black font-bold px-5 py-2 rounded-lg shadow hover:bg-pink-400 transition"
+            >
+              Выйти
+            </Button>
           ) : (
-            <Link href="/login" passHref>
-              <Button
-                as="span" // Важно для Next.js Link + HeroUI Button
-                className="bg-cyan-500 text-black font-bold px-5 py-2 rounded-lg shadow hover:bg-cyan-400 transition"
-              >
-                Войти
-              </Button>
-            </Link>
+            <Button
+              onClick={() => router.push("/login")}
+              className="bg-cyan-500 text-black font-bold px-5 py-2 rounded-lg shadow hover:bg-cyan-400 transition"
+            >
+              Войти с VK
+            </Button>
           )}
         </nav>
 
@@ -73,34 +57,6 @@ export default function Home() {
         >
           {menuOpen ? <X size={26} /> : <Menu size={26} />}
         </button>
-          <div
-            className={`absolute top-full left-0 w-full backdrop-blur-md bg-[#0f111b]/70 border-t border-gray-800 flex flex-col items-center gap-4 py-6 md:hidden transition-all duration-300 ${
-              menuOpen ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-5 pointer-events-none"
-            }`}
-          > 
-          <a href="#events" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">События</a>
-          <a href="#participants" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Участники</a>
-          <a href="#tickets" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Билеты</a>
-          {isAuthenticated && user ? (
-            <>
-              {user.role === "admin" && (
-                <a href="#admin" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Админка</a>
-              )}
-              <Button onClick={() => { logout(); setMenuOpen(false); }} className="bg-pink-500 text-black px-5 py-2 rounded-lg hover:bg-pink-400 transition">
-                Выйти
-              </Button>
-            </>
-          ) : (
-            <Link href="/login" passHref>
-              <Button
-                as="span" // Важно для Next.js Link + HeroUI Button
-                className="bg-cyan-500 text-black font-bold px-5 py-2 rounded-lg shadow hover:bg-cyan-400 transition"
-              >
-                Войти
-              </Button>
-            </Link>
-          )}
-        </div>
       </header>
 
       {/* Hero Section */}
@@ -171,7 +127,6 @@ export default function Home() {
           </div>
         ) : (
           <p className="text-gray-300 text-center">
-            {/* 6. Немного обновили текст-подсказку */}
             Войдите, чтобы получить доступ к билетам. Кнопка входа находится в верхнем меню.
           </p>
         )}
