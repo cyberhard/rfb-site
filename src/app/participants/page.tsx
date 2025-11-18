@@ -1,62 +1,129 @@
-"use client"; 
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
-import { Card } from "@heroui/react";
 import { ArrowLeft } from "lucide-react";
-import { participants } from "../lib/data"; // Импортируем наших участников
+import {
+  Card,
+  Chip,
+  Accordion,
+  AccordionItem,
+  User,
+  Avatar,
+} from "@heroui/react";
+import {
+  participants,
+  Participant,
+  ParticipantRole,
+} from "../lib/data";
+
+const roles: { key: ParticipantRole; label: string }[] = [
+  { key: "Организатор", label: "Организатор" },
+  { key: "Контролёр", label: "Контролёр" },
+  { key: "Спонсор", label: "Спонсор" },
+  { key: "Вип+", label: "Вип+" },
+  { key: "Вип", label: "Вип" },
+  { key: "Участник", label: "Участник" },
+];
 
 export default function ParticipantsPage() {
   return (
-    <div className="bg-[#0f111b] text-gray-100 min-h-screen font-sans">
-      {/* Мы можем добавить простой хэдер или использовать 
-        общий <Layout>, если он у вас есть. 
-        Пока сделаем простой вариант с навигацией.
-      */}
-      <div className="px-6 sm:px-20 py-16">
-        <header className="mb-12">
-          {/* Ссылка для возврата на главную */}
-          <Link 
-            href="/" 
-            className="inline-flex items-center gap-2 text-cyan-400 hover:text-cyan-300 transition mb-4"
+    <main className="min-h-screen bg-black text-white">
+      <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
+        {/* Верхняя панель */}
+        <header className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-100"
           >
-            <ArrowLeft size={20} />
-            Назад на главную
+            <ArrowLeft className="h-4 w-4" />
+            <span>Назад</span>
           </Link>
-          <h1 className="text-4xl sm:text-5xl font-bold text-pink-400">
-            Участники Фестиваля
+          <h1 className="ml-auto text-lg font-semibold">
+            Участники по ролям
           </h1>
         </header>
-        
-        {/* Тот же самый код для отображения карточек, что был на главной */}
-        <main>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {participants.map((p) => (
-              <Card key={p.id} className="bg-gray-900/70 border border-gray-700 shadow-md p-4">
-                <div className="mb-4 flex justify-center">
-                  <Image
-                    src={p.avatar}
-                    alt={p.name}
-                    width={120}
-                    height={120}
-                    className="rounded-full object-cover"
-                  />
-                </div>
-                <h4 className="text-gray-100 font-bold mb-2">{p.name}</h4>
-                <p className="text-gray-300 text-sm">{p.bio}</p>
-              </Card>
-            ))}
-          </div>
-        </main>
-      </div>
 
-      {/* Вы можете также добавить футер, импортировав его */}
-      <footer className="px-6 sm:px-20 py-12 border-t border-gray-800 flex flex-col items-center gap-4 bg-[#0f111b]/80">
-        <p className="text-gray-500">© 2026 RFB Cyber</p>
-        <div className="flex gap-6">
-          <a href="https://vk.com/rusfurbal" className="hover:text-pink-400 transition">VK</a>
-          <a href="#" className="hover:text-cyan-400 transition">Telegram</a>
-        </div>
-      </footer>
-    </div>
+        {/* Ниспадающие списки по ролям (Орг → Участник) */}
+        <section className="w-full">
+          <Accordion
+            selectionMode="multiple"
+            variant="splitted"
+            className="w-full"
+          >
+            {roles.map((role) => {
+              const usersInRole = participants.filter(
+                (p: Participant) => p.role === role.key,
+              );
+
+              if (!usersInRole.length) return null;
+
+              return (
+                <AccordionItem
+                  key={role.key}
+                  aria-label={role.label}
+                  title={`${role.label} (${usersInRole.length})`}
+                >
+                  <div className="flex flex-col gap-2">
+                    {usersInRole.map((p) => (
+                    <Card
+                      key={p.id}
+                      shadow="sm"
+                      className="flex w-full flex-row items-center justify-between gap-4 border border-zinc-800 bg-zinc-900/80 px-4 py-3"
+                    >
+                      {/* Слева: аватарка + владелец (как раньше) */}
+                      <div className="flex min-w-0 flex-row items-center gap-4">
+                        <Avatar
+                          src={p.avatar}
+                          alt={p.name}
+                          radius="full"
+                          className="h-10 w-10"
+                        />
+                        <div className="flex min-w-0 flex-col">
+                          <span className="truncate text-sm font-medium text-zinc-100">
+                            {p.name}
+                          </span>
+                          <span className="text-xs text-zinc-400">
+                            {p.role}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Справа: только статусы, без второй аватарки */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Chip
+                          size="sm"
+                          color={p.status === "Прибыл" ? "success" : "warning"}
+                          variant="flat"
+                          className="text-xs"
+                        >
+                          {p.status}
+                        </Chip>
+
+                        <Chip
+                          size="sm"
+                          color={
+                            p.tag === "Активирован"
+                              ? "success"
+                              : p.tag === "Ожидает подтверждения"
+                              ? "warning"
+                              : "danger"
+                          }
+                          variant="flat"
+                          className="text-xs"
+                        >
+                          {p.tag}
+                        </Chip>
+                      </div>
+                    </Card>
+
+                    ))}
+                  </div>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </section>
+      </div>
+    </main>
   );
 }
