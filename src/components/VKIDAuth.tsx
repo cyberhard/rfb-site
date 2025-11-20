@@ -55,7 +55,7 @@ export default function VKIDAuth() {
         redirectUrl: 'https://rusfurbal.ru/api/auth/callback',
         state,
         codeChallenge,
-        scope: 'email phone',
+        scope: '',
       });
 
       const floatingOneTap = new VKID.FloatingOneTap();
