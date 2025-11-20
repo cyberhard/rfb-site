@@ -90,14 +90,6 @@ export default function ParticipantsPage() {
 
                       {/* Справа: только статусы, без второй аватарки */}
                       <div className="flex flex-wrap items-center gap-2">
-                        <Chip
-                          size="sm"
-                          color={p.status === "Прибыл" ? "success" : "warning"}
-                          variant="flat"
-                          className="text-xs"
-                        >
-                          {p.status}
-                        </Chip>
 
                         <Chip
                           size="sm"
