@@ -1,36 +1,55 @@
+// src/app/api/auth/callback/vk/route.ts
 import { NextResponse } from "next/server";
 
+const CLIENT_ID = process.env.VK_CLIENT_ID!;
+const CLIENT_SECRET = process.env.VK_CLIENT_SECRET!;
+const REDIRECT_URI = "https://rusfurbal.ru/api/auth/callback/vk";
+
 export async function GET(req: Request) {
-  const url = new URL(req.url);
-  const code = url.searchParams.get("code");
-
-  if (!code) return NextResponse.json({ error: "No code provided" }, { status: 400 });
-
   try {
-    const res = await fetch("https://oauth.vk.com/access_token", {
+    const url = new URL(req.url);
+
+    const code = url.searchParams.get("code");
+    const device_id = url.searchParams.get("device_id");
+    const state = url.searchParams.get("state");
+
+    if (!code) {
+      return NextResponse.json({ error: "Missing code" }, { status: 400 });
+    }
+
+    // VK ID OAuth v2.1 token exchange
+    const tokenRes = await fetch("https://id.vk.com/oauth2/auth/token", {
       method: "POST",
       headers: {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        client_id: process.env.VK_CLIENT_ID!,
-        client_secret: process.env.VK_CLIENT_SECRET!,
-        redirect_uri: "https://rusfurbal.ru/api/auth/callback/vk",
-        code: code,
-        // Для code_v2 иногда требуется указать grant_type
         grant_type: "authorization_code",
+        code,
+        client_id: CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri: REDIRECT_URI,
+        device_id: device_id ?? "",
       }),
     });
 
-    const data = await res.json();
+    const data = await tokenRes.json();
 
-    if (data.error) {
-      return NextResponse.json({ error: data.error_description || data.error }, { status: 400 });
+    if (!tokenRes.ok) {
+      return NextResponse.json(
+        { error: data.error_description || data.error || "VK token error" },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ success: true, data });
-  } catch (err) {
-    console.error(err);
+    return NextResponse.json({
+      success: true,
+      vk: data,
+      state,
+      device_id,
+    });
+  } catch (error) {
+    console.error("VK CALLBACK ERROR", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
