@@ -83,7 +83,7 @@ export default function ParticipantsPage() {
                             {p.name}
                           </span>
                           <span className="text-xs text-zinc-400">
-                            {p.role}
+                            {p.status}
                           </span>
                         </div>
                       </div>
