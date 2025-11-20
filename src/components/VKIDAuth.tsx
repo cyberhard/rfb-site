@@ -46,9 +46,7 @@ export default function VKIDAuth() {
       try {
         sessionStorage.setItem('vkid_code_verifier', codeVerifier);
         sessionStorage.setItem('vkid_state', state);
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
 
       VKID.Config.init({
         app: 54294764,
@@ -57,6 +55,15 @@ export default function VKIDAuth() {
         codeChallenge,
         scope: '',
       });
+
+      // 👇👇👇 ВСТАВИТЬ СЮДА! СРАЗУ ПОСЛЕ init()
+      VKID.Config.setOnAuth(function ({ code, device_id, state }) {
+        const verifier = sessionStorage.getItem('vkid_code_verifier') || '';
+
+        window.location.href =
+          `/api/auth/callback/vk?code=${code}&device_id=${device_id}&state=${state}&verifier=${verifier}`;
+      });
+      // ☝☝☝ ЭТО САМЫЙ ВАЖНЫЙ ФРАГМЕНТ
 
       const floatingOneTap = new VKID.FloatingOneTap();
       floatingRef.current = floatingOneTap;
@@ -75,12 +82,10 @@ export default function VKIDAuth() {
 
     return () => {
       mounted = false;
-      if (floatingRef.current && typeof floatingRef.current.close === 'function') {
+      if (floatingRef.current?.close) {
         try {
           floatingRef.current.close();
-        } catch (e) {
-          // ignore
-        }
+        } catch {}
       }
     };
   }, []);

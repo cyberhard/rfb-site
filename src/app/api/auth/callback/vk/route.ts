@@ -12,12 +12,17 @@ export async function GET(req: Request) {
     const code = url.searchParams.get("code");
     const device_id = url.searchParams.get("device_id");
     const state = url.searchParams.get("state");
+    const code_verifier = url.searchParams.get("verifier");
 
     if (!code) {
       return NextResponse.json({ error: "Missing code" }, { status: 400 });
     }
 
-    // VK ID OAuth v2.1 token exchange
+    if (!code_verifier) {
+      return NextResponse.json({ error: "Missing code_verifier" }, { status: 400 });
+    }
+
+    // VK ID token exchange
     const tokenRes = await fetch("https://id.vk.com/oauth2/auth/token", {
       method: "POST",
       headers: {
@@ -26,9 +31,10 @@ export async function GET(req: Request) {
       body: new URLSearchParams({
         grant_type: "authorization_code",
         code,
+        redirect_uri: REDIRECT_URI,
         client_id: CLIENT_ID,
         client_secret: CLIENT_SECRET,
-        redirect_uri: REDIRECT_URI,
+        code_verifier,
         device_id: device_id ?? "",
       }),
     });
@@ -37,7 +43,9 @@ export async function GET(req: Request) {
 
     if (!tokenRes.ok) {
       return NextResponse.json(
-        { error: data.error_description || data.error || "VK token error" },
+        {
+          error: data.error_description || data.error || "VK token error",
+        },
         { status: 400 }
       );
     }
@@ -48,6 +56,7 @@ export async function GET(req: Request) {
       state,
       device_id,
     });
+
   } catch (error) {
     console.error("VK CALLBACK ERROR", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
