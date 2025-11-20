@@ -52,7 +52,7 @@ export default function VKIDAuth() {
 
       VKID.Config.init({
         app: 54294764,
-        redirectUrl: 'https://rusfurbal.ru/api/auth/callback',
+        redirectUrl: 'https://rusfurbal.ru/api/auth/callback/vk',
         state,
         codeChallenge,
         scope: '',
