@@ -1,99 +1,68 @@
-'use client'
+'use client';
 
-import { useEffect, useRef } from "react"
-import * as VKID from "@vkid/sdk"
+import { useEffect } from 'react';
+import * as VKID from '@vkid/sdk';
 
-// SHA-256 → S256
 async function sha256(message: string) {
-  const msgBuffer = new TextEncoder().encode(message)
-  return await window.crypto.subtle.digest("SHA-256", msgBuffer)
+  const msgBuffer = new TextEncoder().encode(message);
+  return await window.crypto.subtle.digest("SHA-256", msgBuffer);
 }
 
 function base64UrlEncode(buffer: ArrayBuffer) {
-  const bytes = new Uint8Array(buffer)
-  let binary = ""
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
   for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i])
+    binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary)
     .replace(/\+/g, "-")
     .replace(/\//g, "_")
-    .replace(/=+$/, "")
+    .replace(/=+$/, "");
 }
 
-function generateRandomString(length = 64) {
-  const array = new Uint8Array(length)
-  window.crypto.getRandomValues(array)
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
-  let str = ""
-  for (let i = 0; i < length; i++) {
-    str += chars[array[i] % chars.length]
-  }
-  return str
+function randomString(len = 64) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+  let str = "";
+  const array = new Uint8Array(len);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < len; i++) str += chars[array[i] % chars.length];
+  return str;
 }
 
 export default function VKIDAuth() {
-  const floatingRef = useRef<any>(null)
-
   useEffect(() => {
-    let mounted = true
+    (async () => {
+      const state = randomString(16);
+      const codeVerifier = randomString(64);
 
-    async function setup() {
-      const state = generateRandomString(16)
-      const codeVerifier = generateRandomString(64)
+      const hash = await sha256(codeVerifier);
+      const codeChallenge = base64UrlEncode(hash);
 
-      const hashed = await sha256(codeVerifier)
-      const codeChallenge = base64UrlEncode(hashed)
+      sessionStorage.setItem("vkid_state", state);
+      sessionStorage.setItem("vkid_code_verifier", codeVerifier);
 
-      sessionStorage.setItem("vkid_code_verifier", codeVerifier)
-      sessionStorage.setItem("vkid_state", state)
-
-      // ИНИЦИАЛИЗАЦИЯ VK ID
       VKID.Config.init({
         app: 54294764,
         redirectUrl: "https://rusfurbal.ru/api/auth/callback/vk",
-        responseMode: "callback", // ВАЖНО
         state,
         codeChallenge,
-        scope: "",
-      })
+        scope: "vkid.personal_info",
+      });
 
-      const floatingOneTap = new VKID.FloatingOneTap()
-      floatingRef.current = floatingOneTap
+      const result = await VKID.Auth.login();
 
-      // 👉 правильный обработчик успеха
-      floatingOneTap.on("auth", ({ code, device_id, state }) => {
-        const verifier = sessionStorage.getItem("vkid_code_verifier") ?? ""
+      if (!result) return;
 
-        // Переброс на наш backend
-        window.location.href =
-          `/api/auth/callback/vk?` +
-          new URLSearchParams({
-            code,
-            device_id,
-            state,
-            verifier,
-          }).toString()
-      })
+      const verifier = sessionStorage.getItem("vkid_code_verifier") || "";
 
-      if (!mounted) return
+      // Переходим на backend callback
+      window.location.href =
+        `/api/auth/callback/vk?code=${result.code}` +
+        `&device_id=${result.device_id}` +
+        `&state=${result.state}` +
+        `&verifier=${verifier}`;
+    })();
+  }, []);
 
-      floatingOneTap.render({
-        scheme: "dark",
-        contentId: 2,
-        appName: "RusFurBal",
-        showAlternativeLogin: true,
-        indent: { top: 108, right: 44, bottom: 38 },
-      })
-    }
-
-    setup()
-
-    return () => {
-      mounted = false
-      floatingRef.current?.close?.()
-    }
-  }, [])
-
-  return null
+  return null;
 }
