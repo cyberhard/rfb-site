@@ -5,90 +5,33 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { signJWT } from "@/lib/jwt";
 
-const VK_TOKEN_URL = "https://id.vk.com/oauth2/auth";
-const VK_USER_URL = "https://api.vk.com/method/users.get";
-
-interface VKExchangeResponse {
-  access_token: string;
-  refresh_token: string;
-  expires_in: number;
-  id_token: string;
-  user_id: number;
-}
-
-interface VKUserResponse {
-  id: number;
-  first_name: string;
-  last_name: string;
-  screen_name: string;
-  photo_400_orig: string;
-}
-
-// Обмен code → access_token
-async function exchangeVKCode(code: string, deviceId: string): Promise<VKExchangeResponse> {
-  const res = await fetch(VK_TOKEN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      grant_type: "authorization_code",
-      code,
-      device_id: deviceId,
-      client_id: process.env.VK_CLIENT_ID,
-      client_secret: process.env.VK_CLIENT_SECRET,
-    }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`VK code exchange failed: ${res.status} ${text}`);
-  }
-
-  return await res.json();
-}
-
-// Получение информации о пользователе VK
-async function getVKUserInfo(accessToken: string): Promise<VKUserResponse> {
-  const url = new URL(VK_USER_URL);
-  url.searchParams.set("fields", "photo_400_orig,screen_name");
-  url.searchParams.set("access_token", accessToken);
-  url.searchParams.set("v", "5.131");
-
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`VK user info failed: ${res.status} ${text}`);
-  }
-
-  const data = await res.json();
-  if (!data.response || !data.response[0]) {
-    throw new Error(`VK user info invalid response`);
-  }
-
-  return data.response[0];
-}
-
 export async function POST(req: Request) {
   try {
-    const { code, device_id } = await req.json();
+    const { access_token } = await req.json();
 
-    if (!code || !device_id) {
-      return NextResponse.json({ error: "Missing code or device_id" }, { status: 400 });
+    if (!access_token) {
+      return NextResponse.json({ error: "Missing access_token" }, { status: 400 });
     }
 
-    // 1️⃣ Обмениваем code на access_token
-    const vkTokens = await exchangeVKCode(code, device_id);
+    // Получаем инфу о пользователе VK напрямую
+    const res = await fetch(
+      `https://api.vk.com/method/users.get?fields=photo_400_orig,screen_name&access_token=${access_token}&v=5.131`
+    );
 
-    // 2️⃣ Получаем инфу о пользователе
-    const vkUser = await getVKUserInfo(vkTokens.access_token);
+    const data = await res.json();
+    if (!data.response || !data.response[0]) {
+      return NextResponse.json({ error: "Invalid VK response" }, { status: 401 });
+    }
 
-    // 3️⃣ Проверяем, есть ли пользователь в базе
+    const vkUser = data.response[0];
+
+    // Проверяем пользователя в базе
     let user = await db.select().from(users).where(eq(users.vkId, Number(vkUser.id)));
 
     let finalUser;
     if (user.length > 0) {
       finalUser = user[0];
 
-      // Обновляем данные
       await db.update(users)
         .set({
           avatarUrl: vkUser.photo_400_orig,
@@ -112,10 +55,8 @@ export async function POST(req: Request) {
       finalUser = inserted[0];
     }
 
-    // 4️⃣ Генерируем JWT
     const token = signJWT({ id: finalUser.id });
 
-    // 5️⃣ Отправляем ответ с cookie
     const response = NextResponse.json({
       user: {
         id: finalUser.id,
@@ -132,7 +73,7 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "strict",
       path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 дней
+      maxAge: 60 * 60 * 24 * 30,
     });
 
     return response;
