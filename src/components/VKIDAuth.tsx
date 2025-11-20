@@ -36,10 +36,35 @@ export default function VKIDAuth({
       });
     };
 
-    const vkidOnSuccess = (data: any) => {
-      console.log('VKID success:', data);
-      // Вызов логина из хука
-      login(data);
+    const vkidOnSuccess = async (payload: any) => {
+      try {
+        const accessToken = payload.access_token;
+        if (!accessToken) throw new Error('No access token');
+
+        // 1️⃣ Получаем инфу о пользователе напрямую с VK
+        const res = await fetch(
+          `https://api.vk.com/method/account.getProfileInfo?access_token=${accessToken}&v=5.131`
+        );
+        const data = await res.json();
+        if (!data.response) throw new Error('Invalid VK response');
+
+        const vkUser = data.response;
+
+        // 2️⃣ Формируем полезную нагрузку для сервера
+        const userPayload = {
+          vkId: vkUser.id,
+          firstName: vkUser.first_name,
+          lastName: vkUser.last_name,
+          screenName: vkUser.screen_name,
+          avatarUrl: vkUser.photo_200 || vkUser.photo_400_orig,
+          email: vkUser.email, // если нужно
+        };
+
+        // 3️⃣ Вызываем login из хука
+        await login(userPayload);
+      } catch (err) {
+        console.error('VKID login failed:', err);
+      }
     };
 
     const vkidOnError = (error: any) => {
@@ -55,7 +80,7 @@ export default function VKIDAuth({
 
         VKID.Config.init({
           app: 54294764,
-          redirectUrl: 'https://rusfurbal.ru/api/auth/callback/vk',
+          redirectUrl: 'https://rusfurbal.ru',
           responseMode: VKID.ConfigResponseMode.Callback,
           source: VKID.ConfigSource.LOWCODE,
           scope: 'email',
@@ -67,21 +92,13 @@ export default function VKIDAuth({
           .render({
             container: containerRef.current,
             scheme,
-            showAlternativeLogin
+            showAlternativeLogin,
           })
           .on(VKID.WidgetEvents.ERROR, vkidOnError)
-          .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, (payload: any) => {
-            const code = payload.code;
-            const deviceId = payload.device_id;
-
-            VKID.Auth.exchangeCode(code, deviceId)
-              .then(vkidOnSuccess)
-              .catch(vkidOnError);
-          });
+          .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, vkidOnSuccess);
 
       } catch (error) {
         console.error('Failed to initialize VKID widget:', error);
-        vkidOnError(error);
       }
     };
 

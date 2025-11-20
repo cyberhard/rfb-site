@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export type User = {
-  name: string;
-  role: string;
-  id?: number;
+  vkId: number;
+  firstName: string;
+  lastName: string;
+  screenName?: string;
+  avatarUrl?: string;
   email?: string;
-  avatar?: string;
+  id?: number;
 };
 
 export function useAuth() {
@@ -13,66 +15,52 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Проверка авторизации при монтировании
   const checkAuth = useCallback(async () => {
-    const token = localStorage.getItem('vk_access_token');
-    if (token) {
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_token: token }),
-        });
-        const data = await res.json();
-        if (data.user) {
-          setUser(data.user);
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem('vk_access_token');
-        }
-      } catch (err) {
-        console.error('Auth check failed:', err);
-        localStorage.removeItem('vk_access_token');
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (data.user) {
+        setUser(data.user);
+        setIsAuthenticated(true);
       }
+    } catch (err) {
+      console.error('Auth check failed:', err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // Логин через VKID
-  const login = async (authData: { access_token: string }) => {
-    if (!authData.access_token) return;
-
-    localStorage.setItem('vk_access_token', authData.access_token);
-
+  const login = async (userData: Partial<User>) => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: authData.access_token }),
+        body: JSON.stringify(userData),
+        credentials: 'include',
       });
-
       const data = await res.json();
       if (data.user) {
         setUser(data.user);
         setIsAuthenticated(true);
       } else {
         console.error('No user returned from server');
-        localStorage.removeItem('vk_access_token');
       }
     } catch (err) {
       console.error('Login failed:', err);
-      localStorage.removeItem('vk_access_token');
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('vk_access_token');
     setIsAuthenticated(false);
     setUser(null);
+    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
   };
 
   return { isAuthenticated, user, loading, login, logout };
