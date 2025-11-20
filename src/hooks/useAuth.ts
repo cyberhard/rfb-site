@@ -18,7 +18,7 @@ export function useAuth() {
     const token = localStorage.getItem('vk_access_token');
     if (token) {
       try {
-        const res = await fetch('/api/auth/vk', {
+        const res = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ access_token: token }),
@@ -49,7 +49,7 @@ export function useAuth() {
     localStorage.setItem('vk_access_token', authData.access_token);
 
     try {
-      const res = await fetch('/api/auth/vk', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ access_token: authData.access_token }),

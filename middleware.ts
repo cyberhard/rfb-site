@@ -1,15 +1,15 @@
-import { NextResponse } from "next/server";
-
 export function middleware(req: any) {
-  const token = req.cookies.get("token")?.value;
+  const pathname = req.nextUrl.pathname;
 
-  if (!token && req.nextUrl.pathname.startsWith("/api")) {
+  // Разрешить авторизационные маршруты без токена
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
+  const token = req.cookies.get("token")?.value;
+  if (!token) {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
   return NextResponse.next();
 }
-
-export const config = {
-  matcher: ["/api/:path*"],
-};
