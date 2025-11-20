@@ -1,116 +1,89 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import * as VKID from '@vkid/sdk';
 
-declare global {
-  interface Window {
-    VKIDSDK: any;
+// Утилиты для PKCE (S256)
+async function sha256(message: string) {
+  const msgBuffer = new TextEncoder().encode(message);
+  return await window.crypto.subtle.digest('SHA-256', msgBuffer);
+}
+
+function base64UrlEncode(buffer: ArrayBuffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
   }
+  const b64 = btoa(binary);
+  return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-interface VKIDAuthProps {
-  scheme?: 'light' | 'dark';
-  showAlternativeLogin?: boolean;
+function generateRandomString(length = 64) {
+  const array = new Uint8Array(length);
+  window.crypto.getRandomValues(array);
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+  let str = '';
+  for (let i = 0; i < length; i++) {
+    str += chars[array[i] % chars.length];
+  }
+  return str;
 }
 
-export default function VKIDAuth({ 
-  scheme = 'dark',
-  showAlternativeLogin = true 
-}: VKIDAuthProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const oneTapRef = useRef<any>(null);
-  const { login } = useAuth();
+export default function VKIDAuth() {
+  const floatingRef = useRef<any | null>(null);
 
   useEffect(() => {
-    const loadScript = () => {
-      return new Promise((resolve, reject) => {
-        if (window.VKIDSDK) return resolve(true);
+    let mounted = true;
 
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@vkid/sdk@<3.0.0/dist-sdk/umd/index.js';
-        script.async = true;
-        script.onload = () => resolve(true);
-        script.onerror = () => reject(new Error('Failed to load VKID SDK'));
-        document.head.appendChild(script);
+    async function setup() {
+      const state = generateRandomString(16);
+      const codeVerifier = generateRandomString(64);
+
+      const hashed = await sha256(codeVerifier);
+      const codeChallenge = base64UrlEncode(hashed);
+
+      try {
+        sessionStorage.setItem('vkid_code_verifier', codeVerifier);
+        sessionStorage.setItem('vkid_state', state);
+      } catch (e) {
+        // ignore
+      }
+
+      VKID.Config.init({
+        app: 54294764,
+        redirectUrl: 'https://rusfurbal.ru/api/auth/callback',
+        state,
+        codeChallenge,
+        scope: 'email phone',
       });
-    };
 
-    const vkidOnSuccess = async (payload: any) => {
-      try {
-        const accessToken = payload.access_token;
-        if (!accessToken) throw new Error('No access token');
+      const floatingOneTap = new VKID.FloatingOneTap();
+      floatingRef.current = floatingOneTap;
+      if (!mounted) return;
 
-        // 1️⃣ Получаем инфу о пользователе напрямую с VK
-        const res = await fetch(
-          `https://api.vk.com/method/account.getProfileInfo?access_token=${accessToken}&v=5.131`
-        );
-        const data = await res.json();
-        if (!data.response) throw new Error('Invalid VK response');
+      floatingOneTap.render({
+        scheme: 'dark',
+        contentId: 2,
+        appName: 'RusFurBal',
+        showAlternativeLogin: true,
+        indent: { top: 108, right: 44, bottom: 38 },
+      });
+    }
 
-        const vkUser = data.response;
-
-        // 2️⃣ Формируем полезную нагрузку для сервера
-        const userPayload = {
-          vkId: vkUser.id,
-          firstName: vkUser.first_name,
-          lastName: vkUser.last_name,
-          screenName: vkUser.screen_name,
-          avatarUrl: vkUser.photo_200 || vkUser.photo_400_orig,
-          email: vkUser.email, // если нужно
-        };
-
-        // 3️⃣ Вызываем login из хука
-        await login(userPayload);
-      } catch (err) {
-        console.error('VKID login failed:', err);
-      }
-    };
-
-    const vkidOnError = (error: any) => {
-      console.error('VKID error:', error);
-    };
-
-    const initWidget = async () => {
-      try {
-        await loadScript();
-        if (!window.VKIDSDK || !containerRef.current) return;
-
-        const VKID = window.VKIDSDK;
-
-        VKID.Config.init({
-          app: 54294764,
-          redirectUrl: 'https://rusfurbal.ru/api/auth/callback/vk',
-          responseMode: VKID.ConfigResponseMode.Callback,
-          source: VKID.ConfigSource.LOWCODE,
-          scope: 'email',
-        });
-
-        oneTapRef.current = new VKID.OneTap();
-
-        oneTapRef.current
-          .render({
-            container: containerRef.current,
-            scheme,
-            showAlternativeLogin,
-          })
-          .on(VKID.WidgetEvents.ERROR, vkidOnError)
-          .on(VKID.OneTapInternalEvents.LOGIN_SUCCESS, vkidOnSuccess);
-
-      } catch (error) {
-        console.error('Failed to initialize VKID widget:', error);
-      }
-    };
-
-    initWidget();
+    setup();
 
     return () => {
-      if (oneTapRef.current) {
-        try { oneTapRef.current.destroy(); } 
-        catch (error) { console.error('Error destroying VKID widget:', error); }
+      mounted = false;
+      if (floatingRef.current && typeof floatingRef.current.close === 'function') {
+        try {
+          floatingRef.current.close();
+        } catch (e) {
+          // ignore
+        }
       }
     };
-  }, [login, scheme, showAlternativeLogin]);
+  }, []);
 
-  return <div ref={containerRef} />;
+  return null;
 }
