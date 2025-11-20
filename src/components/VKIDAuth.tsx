@@ -80,7 +80,7 @@ export default function VKIDAuth({
 
         VKID.Config.init({
           app: 54294764,
-          redirectUrl: 'https://rusfurbal.ru',
+          redirectUrl: 'https://rusfurbal.ru/api/auth/callback/vk',
           responseMode: VKID.ConfigResponseMode.Callback,
           source: VKID.ConfigSource.LOWCODE,
           scope: 'email',
