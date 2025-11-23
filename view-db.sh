@@ -1,5 +1,11 @@
 #!/bin/bash
 # Скрипт для просмотра данных в базе данных
+# Поддерживает удалённые подключения через настройки в .env
+
+# Загрузить настройки из .env если файл существует
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | grep -E '^DB_' | xargs)
+fi
 
 DB_USER="${DB_USER:-kifirchik}"
 DB_PASSWORD="${DB_PASSWORD:-RD!c*zueHm7^WJ&MPZa2M0E4WFJKVp&A^r@Z8MmhhFUQaujJrE#Y3^FqZKDTN\$JN5bgu^C&TKaREX*7Vs\$&TGLcHKE4Mkg9i@I5b7dAC4jIOIJHjf0lWpUrR^OLwnda6}"
@@ -18,10 +24,26 @@ mysql -u "$DB_USER" -p"$DB_PASSWORD" -h "$DB_HOST" -P "$DB_PORT" -e "SELECT 1;" 
 if [ $? -ne 0 ]; then
     echo "❌ Ошибка подключения к MySQL!"
     echo ""
-    echo "Попробуйте запустить MySQL:"
-    echo "  sudo systemctl start mysql"
-    echo "  или"
-    echo "  sudo systemctl start mysqld"
+    echo "Параметры подключения:"
+    echo "  Host: $DB_HOST"
+    echo "  Port: $DB_PORT"
+    echo "  User: $DB_USER"
+    echo "  Database: $DB_NAME"
+    echo ""
+    if [ "$DB_HOST" = "localhost" ] || [ "$DB_HOST" = "127.0.0.1" ]; then
+        echo "Попробуйте запустить MySQL:"
+        echo "  sudo systemctl start mysql"
+        echo "  или"
+        echo "  sudo systemctl start mysqld"
+    else
+        echo "Проверьте:"
+        echo "  1. Доступность сервера: ping $DB_HOST"
+        echo "  2. Открыт ли порт: telnet $DB_HOST $DB_PORT"
+        echo "  3. Правильность учётных данных в .env"
+        echo "  4. Настроен ли удалённый доступ на сервере MySQL"
+        echo ""
+        echo "См. инструкцию: cat REMOTE-DB-SETUP.md"
+    fi
     echo ""
     exit 1
 fi
