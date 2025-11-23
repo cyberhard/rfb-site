@@ -4,6 +4,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Navbar,
   NavbarBrand,
@@ -17,6 +18,8 @@ import { useAuth } from "@/hooks/useAuth";
 export default function AppNavbar() {
   const { user, isAuthenticated, logout, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
 
   // Определение, является ли пользователь администратором
   const isAdmin = user?.role === "admin";
@@ -25,7 +28,9 @@ export default function AppNavbar() {
   const navItems = (
     <>
       <NavbarItem>
-        <a href="#events" className="hover:text-pink-400 transition">События</a>
+        <Link href="/#events" className="hover:text-pink-400 transition">
+          События
+        </Link>
       </NavbarItem>
       <NavbarItem>
         <Link href="/participants" className="hover:text-pink-400 transition">
@@ -33,12 +38,16 @@ export default function AppNavbar() {
         </Link>
       </NavbarItem>
       <NavbarItem>
-        <a href="#tickets" className="hover:text-pink-400 transition">Билеты</a>
+        <Link href="/#tickets" className="hover:text-pink-400 transition">
+          Билеты
+        </Link>
       </NavbarItem>
       {/* Отображаем "Админка" только для админов */}
       {isAdmin && (
         <NavbarItem>
-          <a href="#admin" className="hover:text-pink-400 transition">Админка</a>
+          <Link href="/#admin" className="hover:text-pink-400 transition">
+            Админка
+          </Link>
         </NavbarItem>
       )}
     </>
@@ -50,18 +59,20 @@ export default function AppNavbar() {
       maxWidth="full"
     >
       <NavbarBrand className="flex items-center gap-3">
-        <Image
-          src="/furry_icon.png"
-          alt="Главная плюшка фестиваля"
-          width={50}
-          height={50}
-          className="object-cover object-center brightness-75 select-none"
-          draggable="false"
-          onDragStart={(e) => e.preventDefault()}
-        />
-        <p className="text-3xl sm:text-4xl font-bold tracking-wider text-cyan-400 drop-shadow-lg">
-          RFB 2026
-        </p>
+        <Link href="/" className="flex items-center gap-3">
+          <Image
+            src="/furry_icon.png"
+            alt="Главная плюшка фестиваля"
+            width={50}
+            height={50}
+            className="object-cover object-center brightness-75 select-none"
+            draggable="false"
+            onDragStart={(e) => e.preventDefault()}
+          />
+          <p className="text-3xl sm:text-4xl font-bold tracking-wider text-cyan-400 drop-shadow-lg">
+            RFB 2026
+          </p>
+        </Link>
       </NavbarBrand>
 
       {/* Основное меню для десктопа (md:flex) */}
@@ -110,11 +121,11 @@ export default function AppNavbar() {
         }`}
         // Чтобы избежать дублирования контента, просто переиспользуем логику navItems
       >
-        <a href="#events" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">События</a>
+        <Link href="/#events" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">События</Link>
         <Link href="/participants" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Участники</Link>
-        <a href="#tickets" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Билеты</a>
+        <Link href="/#tickets" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Билеты</Link>
         {isAdmin && (
-          <a href="#admin" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Админка</a>
+          <Link href="/#admin" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Админка</Link>
         )}
         
         {/* Кнопка входа/выхода для мобильного меню */}
