@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
 import {
   Card,
   Chip,
@@ -15,6 +13,7 @@ import {
   Participant,
   ParticipantRole,
 } from "../lib/data";
+import AppNavbar from "@/components/AppNavbar";
 
 const roles: { key: ParticipantRole; label: string }[] = [
   { key: "Организатор", label: "Организатор" },
@@ -28,17 +27,11 @@ const roles: { key: ParticipantRole; label: string }[] = [
 export default function ParticipantsPage() {
   return (
     <main className="min-h-screen bg-black text-white">
+      <AppNavbar />
       <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
-        {/* Верхняя панель */}
-        <header className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 text-sm text-zinc-400 hover:text-zinc-100"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            <span>Назад</span>
-          </Link>
-          <h1 className="ml-auto text-lg font-semibold">
+        {/* Заголовок страницы */}
+        <header className="flex items-center gap-3 pt-6">
+          <h1 className="text-lg font-semibold">
             Участники по ролям
           </h1>
         </header>
