@@ -9,7 +9,6 @@
 | photo_url | string | | URL ссылка на аватарку |
 | role | string | | Участник, Вип, Вип+, Спонсор, Контролёр, Админка, Организатор | 
 | tags | string | | Заблокирован(Ban Hummer), Ожидает подтверждения, Активирован (куплен билет), Аннулирован |
-| status | string | | Прибыл, |
 
 **tikets**
 | name | type | comment | Description |
