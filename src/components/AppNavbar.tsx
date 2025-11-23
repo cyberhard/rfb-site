@@ -70,7 +70,7 @@ export default function AppNavbar() {
             onDragStart={(e) => e.preventDefault()}
           />
           <p className="text-3xl sm:text-4xl font-bold tracking-wider text-cyan-400 drop-shadow-lg">
-            RFB 2026
+          RusFurBal-4
           </p>
         </Link>
       </NavbarBrand>

@@ -48,7 +48,7 @@ export default function Home() {
           className="text-center px-6 z-10"
         >
           <h2 className="text-5xl sm:text-6xl font-extrabold text-cyan-400 drop-shadow-lg mb-4">
-            Добро пожаловать на RFB 2026!
+            Добро пожаловать на RFB 4!
           </h2>
           <p className="text-lg sm:text-xl text-gray-300 drop-shadow-md max-w-2xl mx-auto">
             Музыка, кибер-косплей, VR-игры и уникальные технологии ждут тебя!
