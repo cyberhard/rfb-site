@@ -49,6 +49,7 @@ export default function ParticipantsPage() {
             selectionMode="multiple"
             variant="splitted"
             className="w-full"
+            defaultExpandedKeys={roles.map((role) => role.key)}
           >
             {roles.map((role) => {
               const usersInRole = participants.filter(
