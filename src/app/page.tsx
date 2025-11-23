@@ -35,10 +35,11 @@ export default function Home() {
       <section className="relative w-full h-[80vh] flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#0f111b] via-[#1a1c2e] to-[#0f111b]">
         <div className="absolute inset-0">
           <Image
-            src="/festival-hero.jpg"
+            src="/festival-hero.png"
             alt="Главная плюшка фестиваля"
             fill
-            className="object-cover object-center brightness-75"
+            className="object-cover object-left-top brightness-75"
+            style={{ objectPosition: '0% 10%' }}
           />
         </div>
         <motion.div

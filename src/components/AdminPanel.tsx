@@ -40,7 +40,7 @@ export default function AdminPanel({ onAdd }: { onAdd: (event: EventType) => voi
       <h4 className="text-xl font-bold text-cyan-400 mb-4">Добавить новое событие</h4>
 
       <div className="flex flex-col gap-4">
-        <Input 
+        <Textarea 
           label="Название" 
           value={title} 
           onChange={(e) => setTitle(e.target.value)}
