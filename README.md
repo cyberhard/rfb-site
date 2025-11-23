@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# RusFurBal-4 Site
 
-## Getting Started
+Сайт фестиваля RusFurBal-4 на Next.js с авторизацией через логин и пароль.
 
-First, run the development server:
+## Настройка базы данных MySQL
+
+### 1. Установка MySQL
+
+Убедитесь, что MySQL установлен и запущен на вашем сервере.
+
+### 2. Создание базы данных
+
+Выполните SQL скрипт из файла `database/init.sql`:
+
+```bash
+mysql -u root -p < database/init.sql
+```
+
+Или выполните команды вручную в MySQL клиенте:
+
+```sql
+CREATE DATABASE IF NOT EXISTS rfb_site CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE rfb_site;
+-- Затем выполните остальные команды из database/init.sql
+```
+
+### 3. Настройка переменных окружения
+
+Создайте файл `.env.local` в корне проекта:
+
+```env
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your_password
+DB_NAME=rfb_site
+
+# Node Environment
+NODE_ENV=development
+```
+
+Замените значения на ваши реальные данные для подключения к MySQL.
+
+## Установка зависимостей
+
+```bash
+npm install
+```
+
+## Запуск проекта
+
+### Режим разработки
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Откройте [http://127.0.0.1:3000](http://127.0.0.1:3000) в браузере.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production сборка
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
+
+## Структура базы данных
+
+База данных содержит три основные таблицы:
+
+- **users** - пользователи системы (логин через номер телефона)
+- **tikets** - типы билетов
+- **ivents** - события/мероприятия
+
+Подробная структура описана в файле `DB.md`.
+
+## API Endpoints
+
+### Авторизация
+
+- `POST /api/auth/register` - регистрация нового пользователя
+- `POST /api/auth/login` - вход по логину и паролю
+- `GET /api/auth/me` - получение информации о текущем пользователе
+- `POST /api/auth/logout` - выход из системы
+
+## Роли пользователей
+
+Согласно схеме БД, поддерживаются следующие роли:
+- Участник (по умолчанию)
+- Вип
+- Вип+
+- Спонсор
+- Контролёр
+- Админка
+- Организатор
 
 ## Learn More
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Next.js Documentation](https://nextjs.org/docs)
+- [MySQL Documentation](https://dev.mysql.com/doc/)

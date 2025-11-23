@@ -22,7 +22,7 @@ export default function AppNavbar() {
   const isHomePage = pathname === "/";
 
   // Определение, является ли пользователь администратором
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "Админка" || user?.role === "admin";
   
   // Элементы меню, которые отображаются в NavbarContent
   const navItems = (

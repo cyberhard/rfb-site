@@ -1,0 +1,41 @@
+-- Создание базы данных (если не существует)
+CREATE DATABASE IF NOT EXISTS rfb_site CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+USE rfb_site;
+
+-- Таблица пользователей
+CREATE TABLE IF NOT EXISTS users (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  sity VARCHAR(255) NOT NULL,
+  screen_name VARCHAR(255) NOT NULL,
+  phone_number VARCHAR(20) NOT NULL UNIQUE,
+  password VARCHAR(255) NOT NULL,
+  role VARCHAR(50) DEFAULT 'Участник',
+  availability BOOLEAN NOT NULL DEFAULT FALSE,
+  defile BOOLEAN NOT NULL DEFAULT FALSE,
+  merch BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Таблица билетов
+CREATE TABLE IF NOT EXISTS tikets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  type VARCHAR(50) NOT NULL,
+  price INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Таблица событий
+CREATE TABLE IF NOT EXISTS ivents (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  titile VARCHAR(255) NOT NULL,
+  time DATETIME DEFAULT (CONCAT('2024-07-30 ', TIME(NOW()))),
+  status VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Индекс для быстрого поиска по номеру телефона
+CREATE INDEX idx_phone_number ON users(phone_number);
+

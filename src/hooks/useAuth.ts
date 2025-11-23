@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export type User = {
-  vkId: number;
-  firstName: string;
-  lastName: string;
-  screenName?: string;
-  avatarUrl?: string;
-  email?: string;
-  id?: number;
+  id: number;
+  phone_number: string;
+  screen_name: string;
+  sity: string;
+  role: string;
+  availability: boolean;
+  defile: boolean;
+  merch: boolean;
 };
 
 export function useAuth() {
@@ -17,7 +18,7 @@ export function useAuth() {
 
   const checkAuth = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/me', {
         method: 'GET',
         credentials: 'include',
       });
@@ -25,9 +26,14 @@ export function useAuth() {
       if (data.user) {
         setUser(data.user);
         setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+        setUser(null);
       }
     } catch (err) {
       console.error('Auth check failed:', err);
+      setIsAuthenticated(false);
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -37,30 +43,37 @@ export function useAuth() {
     checkAuth();
   }, [checkAuth]);
 
-  const login = async (userData: Partial<User>) => {
+  const login = async (phone_number: string, password: string) => {
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(userData),
+        body: JSON.stringify({ phone_number, password }),
         credentials: 'include',
       });
       const data = await res.json();
       if (data.user) {
         setUser(data.user);
         setIsAuthenticated(true);
+        return { success: true };
       } else {
-        console.error('No user returned from server');
+        return { success: false, error: data.error || 'Ошибка входа' };
       }
     } catch (err) {
       console.error('Login failed:', err);
+      return { success: false, error: 'Ошибка подключения к серверу' };
     }
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      console.error('Logout failed:', err);
+    } finally {
+      setIsAuthenticated(false);
+      setUser(null);
+    }
   };
 
   return { isAuthenticated, user, loading, login, logout };
