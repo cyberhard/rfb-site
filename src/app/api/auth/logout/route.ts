@@ -7,7 +7,7 @@ export async function POST() {
     
     // Удаляем cookies сессии
     cookieStore.delete('session_id');
-    cookieStore.delete('user_id');
+    cookieStore.delete('userId');
 
     return NextResponse.json({ message: 'Успешный выход' });
   } catch (error) {

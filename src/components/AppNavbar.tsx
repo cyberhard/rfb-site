@@ -22,7 +22,8 @@ export default function AppNavbar() {
   const isHomePage = pathname === "/";
 
   // Определение, является ли пользователь администратором
-  const isAdmin = user?.role === "Админка" || user?.role === "admin";
+  const isAdmin =
+    user?.role === "Админка" || user?.role === "Контролёр";
   
   // Элементы меню, которые отображаются в NavbarContent
   const navItems = (
@@ -45,7 +46,7 @@ export default function AppNavbar() {
       {/* Отображаем "Админка" только для админов */}
       {isAdmin && (
         <NavbarItem>
-          <Link href="/#admin" className="hover:text-pink-400 transition">
+          <Link href="/admin" className="hover:text-pink-400 transition">
             Админка
           </Link>
         </NavbarItem>
@@ -55,7 +56,7 @@ export default function AppNavbar() {
 
   return (
     <Navbar
-      className="w-full border-b border-gray-800 relative z-50 bg-gradient-to-b from-[#0f111b]/90 to-[#1a1c2e]/50"
+      // className="w-full border-b border-gray-800 relative z-50 bg-gradient-to-b from-[#0f111b]/90 to-[#1a1c2e]/50"
       maxWidth="full"
     >
       <NavbarBrand className="flex items-center gap-3">
@@ -125,7 +126,7 @@ export default function AppNavbar() {
         <Link href="/participants" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Участники</Link>
         <Link href="/#tickets" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Билеты</Link>
         {isAdmin && (
-          <Link href="/#admin" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Админка</Link>
+          <Link href="/admin" onClick={() => setMenuOpen(false)} className="hover:text-pink-400 transition text-lg">Админка</Link>
         )}
         
         {/* Кнопка входа/выхода для мобильного меню */}

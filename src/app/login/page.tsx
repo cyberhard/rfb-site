@@ -1,47 +1,79 @@
-// app/login/page.tsx
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import Link from "next/link";
+import { Input, Button } from "@heroui/react";
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated, loading } = useAuth();
-  const [phone_number, setPhone_number] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [phoneDisplay, setPhoneDisplay] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Проверяем параметр URL для сообщения об успешной регистрации
     const params = new URLSearchParams(window.location.search);
-    if (params.get('registered') === 'true') {
-      setSuccess('Регистрация успешна! Теперь вы можете войти.');
+    if (params.get("registered") === "true") {
+      setSuccess("Регистрация успешна! Войдите в систему.");
     }
   }, []);
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.replace('/');
+      router.replace("/");
     }
   }, [isAuthenticated, router]);
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const input = e.target.value;
+    // Убираем все нецифровые символы
+    const digits = input.replace(/\D/g, "");
+    // Ограничиваем 10 цифрами (после +7)
+    const limited = digits.slice(0, 10);
+    
+    // Форматируем: XXX XXX-XX-XX
+    let formatted = "";
+    if (limited.length > 0) {
+      formatted = limited.slice(0, 3);
+    }
+    if (limited.length > 3) {
+      formatted += " " + limited.slice(3, 6);
+    }
+    if (limited.length > 6) {
+      formatted += "-" + limited.slice(6, 8);
+    }
+    if (limited.length > 8) {
+      formatted += "-" + limited.slice(8, 10);
+    }
+    
+    setPhoneDisplay(formatted);
+    // Сохраняем в формате +7XXXXXXXXXX
+    setPhoneNumber(limited.length > 0 ? `+7${limited}` : "");
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setIsSubmitting(true);
-
-    const result = await login(phone_number, password);
+    setError("");
     
-    if (result.success) {
-      router.replace('/');
-    } else {
-      setError(result.error || 'Ошибка входа');
-      setIsSubmitting(false);
+    // Проверка формата номера
+    if (!phoneNumber.startsWith("+7") || phoneNumber.length !== 12) {
+      setError("Введите корректный номер телефона");
+      return;
     }
+
+    setIsSubmitting(true);
+    const result = await login(phoneNumber, password);
+    if (result.success) {
+      router.replace("/");
+    } else {
+      setError(result.error);
+    }
+    setIsSubmitting(false);
   };
 
   if (loading || isAuthenticated) {
@@ -59,37 +91,52 @@ export default function LoginPage() {
           Вход
         </h1>
         <p className="text-gray-300 text-center mb-6">
-          Войдите, используя номер телефона и пароль
+          Добро пожаловатья!
         </p>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="phone_number" className="block text-sm font-medium mb-2">
+            <label className="block text-sm font-medium mb-2">
               Номер телефона
             </label>
-            <input
-              id="phone_number"
-              type="text"
-              value={phone_number}
-              onChange={(e) => setPhone_number(e.target.value)}
-              placeholder="+7 (999) 123-45-67"
-              required
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
-            />
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none z-10">
+                +7
+              </span>
+              <Input
+                type="text"
+                value={phoneDisplay}
+                onChange={handlePhoneChange}
+                placeholder="999 123-45-67"
+                required
+                classNames={{
+                  input: "pl-10 text-white",
+                  inputWrapper:
+                    "bg-gray-800 border-gray-700 hover:border-cyan-400 focus-within:border-cyan-400",
+                }}
+              />
+            </div>
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm font-medium mb-2">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium mb-2"
+            >
               Пароль
             </label>
-            <input
+            <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Введите пароль"
               required
-              className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white"
+              classNames={{
+                input: "text-white",
+                inputWrapper:
+                  "bg-gray-800 border-gray-700 hover:border-cyan-400",
+              }}
             />
           </div>
 
@@ -105,23 +152,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
             className="w-full bg-cyan-500 text-black font-bold px-5 py-2 rounded-lg shadow hover:bg-cyan-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? 'Вход...' : 'Войти'}
-          </button>
+            {isSubmitting ? "Вход..." : "Войти"}
+          </Button>
         </form>
-
-        <div className="mt-6 text-center">
-          <p className="text-gray-400 text-sm">
-            Нет аккаунта?{' '}
-            <Link href="/register" className="text-cyan-400 hover:text-cyan-300">
-              Зарегистрироваться
-            </Link>
-          </p>
-        </div>
       </div>
     </div>
   );

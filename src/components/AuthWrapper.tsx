@@ -1,10 +1,18 @@
 'use client';
 
 import { useAuth } from '@/hooks/useAuth';
-import VKIDAuth from '@/components/VKIDAuth';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AuthWrapper() {
-  const { isAuthenticated, login, logout, loading } = useAuth();
+  const { isAuthenticated, logout, loading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [loading, isAuthenticated, router]);
 
   if (loading) {
     return <div>Загрузка...</div>;
@@ -19,10 +27,5 @@ export default function AuthWrapper() {
     );
   }
 
-  return (
-    <VKIDAuth 
-      onSuccess={login}
-      onError={(error) => console.error('Auth error:', error)}
-    />
-  );
+  return null;
 }
